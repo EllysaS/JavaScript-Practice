@@ -1,4 +1,4 @@
-# JavaScript-Practice
+# JavaScript - Practice
 
 For pedagogical purposes. 
 
