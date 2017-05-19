@@ -1,0 +1,146 @@
+Principles
+
+	1 - Represent whole state of application as single JS object (state / state tree).
+			= State Tree: minimal representation of data in app.
+			= All mutations in Redux are explicit.
+	2 - State Tree is redundant.
+			= You cannot modify or write to it. 
+			= Change state? Dispatch action (plain JS object describing change).
+			= Action: minimal representation of change to data.
+			= Must have a defined type (usually strings).
+			= Components dispatch actions.
+	3 - State mutations must be described as pure functions that take the previous 
+		state and the action being dispatched and return the next state (reducer).
+			= Pure function: no side effects, does not manipulate data passed to it.
+
+Reducers
+
+	function reducer(prev_state, action) {
+		if (typeof state === 'undefined') {
+			return initial_state
+		}
+		//do stuff
+		return next_state;
+	}
+
+Methods
+
+	Store: binds together three principles; holds current app state, let's you dispatch 
+		actions, when you create it you need to define reducer.
+
+	getState:	retrieves current state of redux store
+	dispatch:	dispatches actions to change state of application, most commonly used
+	subscribe:	registers callback to be called by redux store any time it is dispatched
+
+Creating the Store from Scratch (kinda)
+
+	const createStore = (reducer) => {
+		let state;
+		let listeners = [];
+
+		const getState = () => state;
+
+		const dispatch = (action) => {
+			state = reducer(state, action);
+			listeners.forEach(listener => listener());
+		};
+
+		const subscribe = (listener) => {
+			listeners.push(listener);
+			return  () => {
+				listeners = listeners.filter(l => l !== listener);
+			};
+		};
+		dispatch({});
+
+		return { getState, dispatch, subscribe };
+	};
+
+Avoiding Mutations
+
+	Arrays
+	
+		NO 		list.push(0)
+		YES		list.concat([0]) or [...list, 0]
+
+		NO 		list.splice(index, something)
+		YES		list
+					.slice(0, index)
+					.concat(list.slice(index + 1))
+				or
+				[
+				...list.slice(0, index),
+				...list.slice(index + 1)
+				]
+
+		NO 		list[index]++
+		YES 	list
+					.slice(0, index)
+					.concat([list[index] + 1])
+					.concat(list.slice(index + 1))
+				or
+				[
+				...list.slice(0, index),
+				list[index] + 1,
+				...list.slice(index + 1)
+				]
+
+	Objects
+
+		NO 		const toggleTodo = (todo) => {
+					todo.completed = !todo(completed);
+					return todo;
+				};
+		YES		const toggleTodo = (todo) => {
+					return {
+						id:			todo.id,
+						text:		todo.text,
+						completed: 	!todo.completed
+					};
+				};
+				or
+				const toggleTodo = (todo) => {
+					return Object.assign({}, todo, {
+						completed: !todo.completed
+					});
+				};
+
+Implementing combineReducers() from Scratch (kinda)
+
+	const combineReducers = (reducers) => {
+		return (state = {}, action) => {
+			return Object.keys(reducers).reduce(
+				(nextState, key) => {					//NOTE: nextState
+					nextState[key] = reducers[key](
+						state[key],
+						action
+					);
+					return nextState;
+				},
+				{}
+			);
+		};
+	};
+
+	NOTE: 	even though we mutate this "nextState", it is an object created within the 
+			function so combineReducers is still a pure function
+
+Code Structure
+
+	1 - Rails-style: 	seperate folders for: actions, constants, reducers, 
+						containers, and components.
+	
+	2 - Domain-style:	seperate folders per feature or domain, possibly with 
+						subfolders per type
+
+	3 - "Ducks":		similar to domain-style, but explicitly tying together actions 
+						and reducers, often by defining them in the same file
+
+	Selectors are (generally) defined alongisde reducers and exported to be used elsewhere (ex. mapStateToProps, sagas) so that all of the code that knows about the shape of the state tree in the reducer files are in the same location.
+
+	Remember that actions and reducers shouldn't be considered in isolation.
+
+	Fat action objects / thin reducers.
+
+
+LEFT OFF AT ADDTODO
