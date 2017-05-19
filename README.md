@@ -1,3 +1,3 @@
-# JavaScript - Practice
+# JavaScript
 
 Tutorials linked.
