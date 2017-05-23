@@ -1,15 +1,17 @@
+BASIC REDUX TUTORIAL
+
 Principles
 
 	1 - Represent whole state of application as single JS object (state / state tree).
 			= State Tree: minimal representation of data in app.
 			= All mutations in Redux are explicit.
 	2 - State Tree is redundant.
-			= You cannot modify or write to it. 
+			= You cannot modify or write to it.
 			= Change state? Dispatch action (plain JS object describing change).
 			= Action: minimal representation of change to data.
 			= Must have a defined type (usually strings).
 			= Components dispatch actions.
-	3 - State mutations must be described as pure functions that take the previous 
+	3 - State mutations must be described as pure functions that take the previous
 		state and the action being dispatched and return the next state (reducer).
 			= Pure function: no side effects, does not manipulate data passed to it.
 
@@ -25,7 +27,7 @@ Reducers
 
 Methods
 
-	Store: binds together three principles; holds current app state, let's you dispatch 
+	Store: binds together three principles; holds current app state, let's you dispatch
 		actions, when you create it you need to define reducer.
 
 	getState:	retrieves current state of redux store
@@ -59,7 +61,7 @@ Creating the Store from Scratch (kinda)
 Avoiding Mutations
 
 	Arrays
-	
+
 		NO 		list.push(0)
 		YES		list.concat([0]) or [...list, 0]
 
@@ -122,25 +124,93 @@ Implementing combineReducers() from Scratch (kinda)
 		};
 	};
 
-	NOTE: 	even though we mutate this "nextState", it is an object created within the 
+	NOTE: 	even though we mutate this "nextState", it is an object created within the
 			function so combineReducers is still a pure function
 
 Code Structure
 
-	1 - Rails-style: 	seperate folders for: actions, constants, reducers, 
+	1 - Rails-style: 	seperate folders for: actions, constants, reducers,
 						containers, and components.
-	
-	2 - Domain-style:	seperate folders per feature or domain, possibly with 
+
+	2 - Domain-style:	seperate folders per feature or domain, possibly with
 						subfolders per type
 
-	3 - "Ducks":		similar to domain-style, but explicitly tying together actions 
+	3 - "Ducks":		similar to domain-style, but explicitly tying together actions
 						and reducers, often by defining them in the same file
 
-	Selectors are (generally) defined alongisde reducers and exported to be used elsewhere (ex. mapStateToProps, sagas) so that all of the code that knows about the shape of the state tree in the reducer files are in the same location.
+	Selectors are (generally) defined alongisde reducers and exported to be used
+		elsewhere (ex. mapStateToProps, sagas) so that all of the code that knows
+		about the shape of the state tree in the reducer files are in the same location.
 
 	Remember that actions and reducers shouldn't be considered in isolation.
 
 	Fat action objects / thin reducers.
 
 
-LEFT OFF AT ADDTODO
+ADVANCED REDUX TUTORIAL
+
+Async Actions
+	Crucial Moments:
+		1. Moment you start the call.
+		2. Moment you receive an answer/timeout.
+
+	Any API request should dispatch at least three different kinds of actions:
+		1. Action to inform reducers of beginning of request
+			- isFetching flag in state
+			- show a spinner
+		2. Action to inform reducers of success of request
+			- merge new data into state and reset isFetching
+			- hide spinner, display fetched data
+		3. Action to inform reducers of failure of request
+			- reset isFetching, store error message
+			- display error message
+
+	Not wise to couple fetching to particular UI events early on
+	Without middleware, Redux store only supports synchronous data flow
+
+	Middleware: provide third-party extension points between dispatching an	action,
+				and the moment it reaches the reducer
+
+Designing the State Shape
+	Asynchronous code means more state to take care of
+	Most common use case: lists (list of posts, list of friends, etc)
+
+	Note:
+		- Each unit's information stored separately so we can cache every subreddit
+		- Updates are instant, no need to refetch unless we want to
+		- For every list of items: isFetching, didInvalidate, lastUpdated, and items
+		- In a real app, also want pagination (fetchedPageCount, nextPageUrl, etc)
+
+Async Action Creators
+	React Thunk Middleware
+		- using React Thunk allows an action creator to return a function instead
+			of an action object
+		- the action creator actually then becomes a thunk
+		- the thunk returned will be executed by React Thunk middleware
+
+	Other Middleware
+		- redux-promise, dispatch promisies instead of functions
+		- redux-observable, dispatch observables
+		- redux-saga, build more complex asynchronous actions
+		- redux-pack, dispatch promise-based asynchronous actions
+		- custom middleware
+
+Thunk Action Creators
+	export function fetchPosts(subreddit) {
+		return function(dispatch) {
+			// first dispatch
+			// state updated to inform that API call is starting
+			dispatch(requestPosts(subreddit))
+
+			// return promise to wait for -- not required, but convenient
+			return fetch(`https://www.reddit.com/r/${subreddit}.json`)
+				.then(response => response.jason())
+				.then(json =>
+
+					// can dispatch many times
+					// state updated with results of API call
+					dispatch(receivePosts(subreddit, json))
+				)
+			// NOTE: In real apps, would also want to catch any error in network call!
+		}
+	}
